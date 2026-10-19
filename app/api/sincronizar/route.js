@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { COOKIE_ITENS, idsDoCookie, listItems, pluggy, pluggyConfigured } from '../../../lib/pluggy';
+import { COOKIE_ITENS, eMeuPluggy, idsDoCookie, listItems, pluggy, pluggyConfigured } from '../../../lib/pluggy';
 import { limparCache } from '../../../lib/dados';
 
 export const dynamic = 'force-dynamic';
@@ -21,6 +21,8 @@ export async function POST(request) {
   const items = await listItems(idsDoCookie(request.cookies.get(COOKIE_ITENS)?.value));
   const bancos = await Promise.all(items.map(async (i) => {
     if (EM_ANDAMENTO.has(i.status)) return resumo(i);
+    // MeuPluggy connections mirror meu.pluggy.ai and refuse manual updates; they sync on their own.
+    if (eMeuPluggy(i)) return resumo(i);
     try {
       return resumo(await pluggy().updateItem(i.id));
     } catch (e) {
@@ -28,5 +30,6 @@ export async function POST(request) {
     }
   }));
   limparCache();
-  return NextResponse.json({ bancos, emAndamento: bancos.some((b) => EM_ANDAMENTO.has(b.status)) });
+  const viaMeuPluggy = items.some(eMeuPluggy);
+  return NextResponse.json({ bancos, viaMeuPluggy, emAndamento: bancos.some((b) => EM_ANDAMENTO.has(b.status)) });
 }

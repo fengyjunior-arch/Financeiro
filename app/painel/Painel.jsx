@@ -29,6 +29,7 @@ export default function Painel() {
       const res = await fetch('/api/sincronizar', { method: 'POST' });
       let body = await res.json();
       avisos = (body.bancos ?? []).filter((b) => b.erro).map((b) => `${b.banco} não aceitou atualizar agora: ${b.erro}`);
+      if (body.viaMeuPluggy) avisos.push('Os dados do MeuPluggy chegam quando o meu.pluggy.ai sincroniza com o banco. Para trazer algo mais recente, abra o meu.pluggy.ai, atualize o C6 lá e depois toque em Atualizar aqui.');
       const fim = Date.now() + 120000;
       while (body.emAndamento && Date.now() < fim) {
         await new Promise((r) => setTimeout(r, 4000));

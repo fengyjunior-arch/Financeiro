@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { pluggy, listItems, pluggyConfigured } from '../../../lib/pluggy';
+import { eMeuPluggy, pluggy, listItems, pluggyConfigured } from '../../../lib/pluggy';
 import { limparCache } from '../../../lib/dados';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +13,7 @@ export async function GET(request) {
   const resultado = [];
   // Only connections saved in PLUGGY_ITEM_IDS are refreshed here; the job has no browser cookie.
   for (const item of await listItems()) {
+    if (eMeuPluggy(item)) { resultado.push({ banco: item.connector?.name, status: 'sincroniza sozinho' }); continue; }
     try {
       const atualizado = await pluggy().updateItem(item.id);
       resultado.push({ banco: item.connector?.name, status: atualizado.status });
