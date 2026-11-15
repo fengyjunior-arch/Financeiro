@@ -1,24 +1,33 @@
 // Markup of the painel, ported from the original dashboard. Static: every value is filled in by motor.js.
+const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICONE = {
+  atualizar: svg('<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/>'),
+  banco: svg('<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/>'),
+  sair: svg('<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l-4-4 4-4"/><path d="M6 12h10"/>'),
+  gastos: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+  fixas: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8.5 15l2 2 4-4"/>'),
+  invest: svg('<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>'),
+  mais: svg('<path d="M12 5v14M5 12h14"/>'),
+};
+
 export const TEMPLATE = `
 <div class="fc privado" id="fc-app">
-  <div class="fc-top">
+  <header class="fc-top">
     <h1>Finanças <span>C6</span></h1>
-    <div class="fc-tabs" role="tablist" aria-label="Seções">
-      <button type="button" role="tab" data-tab="gastos" aria-selected="true">Gastos</button>
-      <button type="button" role="tab" data-tab="investimentos" aria-selected="false">Investimentos</button>
-    </div>
-    <span class="per" id="periodo">—</span>
-    <button type="button" class="fc-eye" id="fc-eye" aria-pressed="false"></button>
-  </div>
-  <div class="fc-row">
-    <span class="fc-sync" id="fc-sync"></span>
     <div class="acoes">
-      <button type="button" class="fc-btn" id="fc-atualizar">Atualizar</button>
-      <a class="fc-btn" href="/conectar">Banco</a>
-      <button type="button" class="fc-btn" id="fc-sair">Sair</button>
+      <button type="button" class="fc-eye" id="fc-eye" aria-pressed="false"></button>
+      <button type="button" class="fc-btn" id="fc-atualizar" title="Buscar dados novos">${ICONE.atualizar}<span>Atualizar</span></button>
+      <a class="fc-btn fc-icone" href="/conectar" title="Banco" aria-label="Banco">${ICONE.banco}</a>
+      <button type="button" class="fc-btn fc-icone" id="fc-sair" title="Sair" aria-label="Sair">${ICONE.sair}</button>
     </div>
-  </div>
-  <div id="fc-avisos" style="display: grid; gap: var(--g2)"></div>
+  </header>
+  <nav class="fc-tabs" role="tablist" aria-label="Seções">
+    <button type="button" role="tab" data-tab="gastos" aria-selected="true">${ICONE.gastos}<span>Gastos</span></button>
+    <button type="button" role="tab" data-tab="fixas" aria-selected="false">${ICONE.fixas}<span>Fixas</span></button>
+    <button type="button" role="tab" data-tab="investimentos" aria-selected="false">${ICONE.invest}<span>Investimentos</span></button>
+  </nav>
+  <div class="fc-status"><span class="fc-sync" id="fc-sync"></span><span class="per" id="periodo">—</span></div>
+  <div id="fc-avisos" class="fc-avisos"></div>
 
   <div class="fc-page" id="pg-gastos">
   <section class="fc-hero" id="topo">
@@ -96,6 +105,50 @@ export const TEMPLATE = `
       </div>
     </section>
   </div>
+  </div>
+
+  <div class="fc-page" id="pg-fixas" hidden>
+    <section class="fc-hero">
+      <span class="lbl">Despesas fixas por mês</span>
+      <span class="big" id="fx-total">—</span>
+      <span class="tk" id="fx-tk">—</span>
+      <div class="fc-progress" hidden><i id="fx-prog"></i></div>
+    </section>
+    <div class="fc-chips" id="fx-mes" role="group" aria-label="Mês"></div>
+    <div class="fc-aviso" id="fx-aviso" hidden></div>
+
+    <section class="fc-card" id="fx-form-card" hidden>
+      <h2 id="fx-form-tit">Nova despesa fixa</h2>
+      <form class="fc-form" id="fx-form" autocomplete="off">
+        <label class="largo">Nome<input id="fx-nome" required maxlength="80" placeholder="Aluguel, internet, academia…"></label>
+        <label>Valor (R$)<input id="fx-valor" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="0,00"></label>
+        <label>Dia do vencimento<input id="fx-dia" type="number" min="1" max="31" inputmode="numeric" required placeholder="10"></label>
+        <label>Categoria<select id="fx-categoria"></select></label>
+        <label>Onde é paga<select id="fx-origem"><option value="">Conta ou cartão</option><option value="Conta">Conta</option><option value="Cartão">Cartão</option></select></label>
+        <label class="largo"><span>Como aparece no extrato <small>opcional</small></span><input id="fx-termo" maxlength="60" placeholder="Ex.: NETFLIX ou o nome de quem recebe o Pix"></label>
+        <p class="note largo">O app marca a despesa como paga quando encontra esse texto nas transações do mês. Sem ele, procura pelo nome.</p>
+        <div class="fc-form-acoes largo">
+          <button type="submit" class="fc-btn primario">Salvar</button>
+          <button type="button" class="fc-btn" id="fx-cancelar">Cancelar</button>
+          <button type="button" class="fc-btn perigo" id="fx-excluir" hidden>Excluir</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="fc-card">
+      <div class="fc-card-head">
+        <h2>Suas despesas fixas</h2>
+        <button type="button" class="fc-btn primario" id="fx-nova">${ICONE.mais}<span>Nova</span></button>
+      </div>
+      <p class="note" id="fx-vazio">Nenhuma despesa cadastrada. Toque em Nova para adicionar aluguel, internet, academia e outras contas que se repetem.</p>
+      <ul class="fc-fx-lista" id="fx-lista"></ul>
+    </section>
+
+    <section class="fc-card" id="fx-sug-card" hidden>
+      <h2>Parecem fixas</h2>
+      <p class="note">Gastos que se repetem todo mês com valor parecido. Toque para cadastrar.</p>
+      <div class="fc-sug-lista" id="fx-sug"></div>
+    </section>
   </div>
 
   <div class="fc-page" id="pg-invest" hidden>

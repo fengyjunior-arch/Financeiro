@@ -21,6 +21,17 @@ Nenhum dado financeiro fica neste repositório. As transações são buscadas na
 5. No fim, o app mostra um **código da conexão**. Na Vercel, em *Settings → Environment Variables*, crie `PLUGGY_ITEM_IDS` com esse código e depois vá em *Deployments → … → Redeploy*. Isso faz o banco aparecer em qualquer aparelho e entrar na atualização diária. (Se conectar mais de um banco, separe os códigos por vírgula.)
 6. **No celular:** abra o endereço no Safari ou Chrome e use *Adicionar à Tela de Início*.
 
+### Despesas fixas em todos os aparelhos
+
+A aba *Fixas* guarda as despesas que você cadastra. Sem nenhuma configuração, elas ficam salvas só no navegador onde foram cadastradas. Para vê-las no celular e no computador:
+
+1. Na Vercel, abra o projeto e vá em **Storage → Create Database**.
+2. Escolha **Upstash → Redis**, aceite o plano gratuito e crie.
+3. Na tela seguinte, conecte o banco ao projeto `financeiro` (deixe marcados todos os ambientes).
+4. Vá em *Deployments → … → Redeploy*.
+
+A Vercel cadastra sozinha as variáveis `KV_REST_API_URL` e `KV_REST_API_TOKEN`. Na primeira vez que você abrir a aba *Fixas* depois disso, o que estava salvo no navegador sobe para o servidor.
+
 A autorização do Open Finance vale por um período definido pelo banco (normalmente 12 meses). Quando estiver perto de vencer, o app avisa; renove em *Banco → Renovar autorização*.
 
 ### Testar antes com o banco de testes da Pluggy
@@ -33,6 +44,7 @@ Cadastre `PLUGGY_SANDBOX=1` e o *Conectar um banco* passa a listar o "Pluggy Ban
 - **Cartão:** cada compra é um gasto; estornos abatem do gasto.
 - **Categorias:** as da Pluggy, agrupadas em português (`lib/categorias.js`).
 - **Saldo diário:** calculado a partir do saldo atual, desfazendo as movimentações de cada dia.
+- **Despesas fixas:** uma despesa conta como paga no mês quando aparece um gasto com o texto cadastrado em *Como aparece no extrato* (ou com o nome dela). Também dá para marcar como paga tocando no círculo ao lado. A seção *Parecem fixas* sugere gastos que se repetem em pelo menos 3 meses com valor parecido.
 - **Investimentos:** posição atual de cada título (bruto, líquido, aplicado, rendimento, IR e IOF) e o histórico de aplicações e resgates que o banco enviar.
 
 ## Rodar no computador
@@ -46,6 +58,7 @@ npm run dev
 ## Estrutura
 
 - `app/painel/` — telas de Gastos e Investimentos (`motor.js` desenha com d3, `template.js` tem a marcação).
+- `app/painel/fixas.js` e `app/api/despesas` — despesas fixas (`lib/kv.js` fala com o Upstash Redis).
 - `app/api/dados` — busca tudo na Pluggy e devolve já organizado (`lib/dados.js`).
 - `app/api/cron` — atualização diária, agendada em `vercel.json` (6h no horário de Brasília).
 - `app/conectar` — tela de conexão com o widget da Pluggy.

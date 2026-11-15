@@ -1,4 +1,7 @@
+import { Inter } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' });
 
 export const metadata = {
   title: 'Finanças C6',
@@ -8,7 +11,7 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: '#0b0a09',
+  themeColor: '#09090b',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -16,7 +19,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={inter.variable}>
       <body>{children}</body>
     </html>
   );

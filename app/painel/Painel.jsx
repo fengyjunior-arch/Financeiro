@@ -22,8 +22,10 @@ export default function Painel() {
 
   // Asks Pluggy to pull fresh data from the bank, waits for it to finish, then reloads the painel.
   async function sincronizar(btn) {
+    const rotulo = btn.querySelector('span');
     btn.disabled = true;
-    btn.textContent = 'Buscando no banco…';
+    btn.classList.add('girando');
+    rotulo.textContent = 'Buscando…';
     let avisos = [];
     try {
       const res = await fetch('/api/sincronizar', { method: 'POST' });
@@ -39,7 +41,7 @@ export default function Painel() {
     } catch {
       avisos.push('Não consegui pedir a atualização ao banco agora.');
     }
-    btn.textContent = 'Carregando…';
+    rotulo.textContent = 'Carregando…';
     await carregar(true, avisos);
   }
 
@@ -58,6 +60,7 @@ export default function Painel() {
       btn.addEventListener('click', () => sincronizar(btn));
       q('fc-sair').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; });
       q('fc-avisos').replaceChildren(...dados.avisos.map((a) => Object.assign(document.createElement('div'), { className: 'fc-aviso', textContent: a })));
+      q('fc-avisos').hidden = !dados.avisos.length;
     });
     return () => parar();
   }, [estado]);
@@ -88,7 +91,7 @@ export default function Painel() {
 function Casca({ children }) {
   return (
     <div className="fc">
-      <div className="fc-top"><h1>Finanças <span>C6</span></h1></div>
+      <header className="fc-top"><h1>Finanças <span>C6</span></h1></header>
       {children}
     </div>
   );
