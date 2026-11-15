@@ -1,6 +1,7 @@
 // Drawing code for the painel, ported from the original Finanças C6 dashboard.
 // `dados` is the JSON from /api/dados; the markup comes from template.js.
 import * as d3 from 'd3';
+import { iniciarFixas } from './fixas';
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -323,7 +324,7 @@ function iniciarGastos(dash, $, calm) {
       const td = (txt, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = txt; return c; };
       const desc = td('', 'desc');
       const dot = document.createElement('span'); dot.className = 'dot';
-      dot.style.background = r.tipo === 'Gasto' ? (catColor[r.categoria] ?? '#ff7a1a') : ENTR.has(r.tipo) ? '#7bd99a' : '#6f5f55';
+      dot.style.background = r.tipo === 'Gasto' ? (catColor[r.categoria] ?? '#ff7a1a') : ENTR.has(r.tipo) ? 'var(--ok)' : 'var(--dim)';
       desc.append(dot, document.createTextNode(r.descricao));
       const meta = document.createElement('span'); meta.className = 'meta';
       meta.textContent = r.origem + (r.fatura ? ' · ' + r.fatura : '') + ' · ' + (r.tipo === 'Gasto' ? r.categoria : r.tipo);
@@ -723,7 +724,7 @@ function iniciarPrivacidade(app, btn) {
       const el = n.parentElement;
       if (el && /R\$/.test(n.nodeValue) && !el.closest('.fc-eye') && !el.classList.contains('m')) el.classList.add('m');
     }
-    for (const i of app.querySelectorAll('input[type=number]')) i.classList.add('m');
+    for (const i of app.querySelectorAll('input[type=number]:not(.fc-form input)')) i.classList.add('m');
   };
   let queued = false;
   const obs = new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; scan(); }); } });
@@ -741,18 +742,19 @@ export function iniciar(root, dados) {
 
   const desenharGastos = iniciarGastos(dash, $, calm);
   const desenharInvest = iniciarInvest(dash, $, calm);
+  const desenharFixas = iniciarFixas($, dados);
+  const PAGINAS = { gastos: 'pg-gastos', fixas: 'pg-fixas', investimentos: 'pg-invest' };
 
   const tabs = [...root.querySelectorAll('.fc-tabs button')];
   const show = (name, link = true) => {
     for (const b of tabs) b.setAttribute('aria-selected', String(b.dataset.tab === name));
-    $('pg-gastos').hidden = name !== 'gastos';
+    for (const [tab, id] of Object.entries(PAGINAS)) $(id).hidden = name !== tab;
     $('periodo').hidden = name !== 'gastos';
-    $('pg-invest').hidden = name !== 'investimentos';
     if (link) dash.setLink(name);
-    if (name === 'investimentos') desenharInvest(); else desenharGastos();
+    ({ gastos: desenharGastos, fixas: desenharFixas, investimentos: desenharInvest })[name]();
   };
-  for (const b of tabs) b.addEventListener('click', () => show(b.dataset.tab));
-  if (location.hash.slice(1) === 'investimentos') show('investimentos', false);
+  for (const b of tabs) b.addEventListener('click', () => { show(b.dataset.tab); window.scrollTo({ top: 0 }); });
+  if (PAGINAS[location.hash.slice(1)]) show(location.hash.slice(1), false);
 
   const parar = iniciarPrivacidade($('fc-app'), $('fc-eye'));
 
